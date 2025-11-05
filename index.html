@@ -357,12 +357,14 @@
                         userId = user.uid;
                         isAuthReady = true;
                         
-                        // --- PERUBAHAN: Cek username DARI LOCALSTORAGE ---
-                        if (!username) { // 'username' di-load dari localStorage di atas
+                        // --- PERUBAHAN: Pindahkan pengecekan localStorage ke SINI ---
+                        const storedUsername = localStorage.getItem('sijibox_username');
+                        if (!storedUsername) { 
                             sessionStorage.removeItem('sijibox_last_room'); // Keamanan
                             showView('username');
                         } else {
-                            // --- BARU: Logika Rejoin ---
+                            username = storedUsername; // Sinkronkan variabel global
+                            // --- Logika Rejoin ---
                             const lastRoomId = sessionStorage.getItem('sijibox_last_room');
                             if (lastRoomId) {
                                 console.log("Mencoba bergabung kembali ke room:", lastRoomId);
@@ -389,7 +391,8 @@
         }
         
         // BARU: Fungsi untuk mengatur nama pengguna
-        function handleSetUsername() {
+        // --- PERUBAHAN: Tambahkan 'async' ---
+        async function handleSetUsername() {
             const name = usernameInput.value.trim();
             if (name.length < 3) {
                 // Jangan gunakan alert()
@@ -405,7 +408,8 @@
             const lastRoomId = sessionStorage.getItem('sijibox_last_room');
             if (lastRoomId) {
                 console.log("Nama di-set, mencoba bergabung kembali ke room:", lastRoomId);
-                tryRejoinRoom(lastRoomId); // Tidak perlu await
+                // --- PERUBAHAN: Tambahkan 'await' ---
+                await tryRejoinRoom(lastRoomId); 
             } else {
                 showLobby(); // Tampilkan lobi
             }
