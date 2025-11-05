@@ -94,7 +94,8 @@
         const programContainer = document.getElementById('program-container');
         const btnReady = document.getElementById('btn-ready');
         const btnStartRace = document.getElementById('btn-start-race');
-        const btnLeaveRoom = document.getElementById('btn-leave-room');
+        const btnLogout = document.getElementById('btn-logout'); // PERUBAHAN: Ganti nama
+        const btnBackToLobby = document.getElementById('btn-back-to-lobby'); // BARU
         const gameStatusMessage = document.getElementById('game-status-message');
         const btnResetProgram = document.getElementById('btn-reset-program');
         const gameRoomIdDisplay = document.getElementById('game-room-id-display'); // BARU: Tampilan ID Room
@@ -955,7 +956,42 @@
         }
 
 
-        // --- PERUBAHAN: Ganti nama fungsi 'leaveRoom' menjadi 'handleLogout' ---
+        // --- BARU: Fungsi untuk kembali ke lobi ---
+        async function handleBackToLobby() {
+            if (currentRoomListener) currentRoomListener(); // Berhenti mendengarkan room
+            currentRoomListener = null;
+
+            // Hapus dari SessionStorage agar tidak auto-join
+            sessionStorage.removeItem('sijibox_last_room');
+
+            if (currentRoomId && userId) {
+                const roomRef = doc(db, getRoomsCollectionPath(), currentRoomId);
+                
+                // Cek jika host keluar DAN tidak ada pemain lain
+                if (localGameData.hostId === userId && Object.keys(localGameData.players).length <= 1) {
+                    await deleteDoc(roomRef).catch(e => console.error("Gagal hapus room:", e));
+                } else {
+                    // Jika bukan host, atau host tapi ada pemain lain, hapus diri sendiri
+                    await updateDoc(roomRef, {
+                        [`players.${userId}`]: deleteField() 
+                    }).catch(e => console.error("Gagal keluar room:", e));
+                }
+            }
+
+            currentRoomId = null;
+            localGameData = {};
+            program.commands = [];
+            fullRerenderAndReinit();
+            
+            gameRoomIdDisplay.classList.add('hidden'); // Sembunyikan ID Room
+            
+            // --- PERBEDAAN UTAMA DARI LOGOUT ---
+            // TIDAK menghapus localStorage, langsung ke lobi
+            showLobby(); // Tampilkan lobi (username masih ada)
+            // listenToRoomsList() sudah dipanggil di dalam showLobby()
+        }
+
+        // --- PERUBAHAN: Nama fungsi tetap handleLogout ---
         async function handleLogout() {
             if (currentRoomListener) currentRoomListener(); // Berhenti mendengarkan room
             currentRoomListener = null;
@@ -1544,7 +1580,8 @@
         btnReady.addEventListener('click', handleReadyClick);
         btnStartRace.addEventListener('click', handleStartRaceClick);
         // --- PERUBAHAN: Ganti event listener ke 'handleLogout' ---
-        btnLeaveRoom.addEventListener('click', handleLogout);
+        btnLogout.addEventListener('click', handleLogout); // PERUBAHAN
+        btnBackToLobby.addEventListener('click', handleBackToLobby); // BARU
         btnResetProgram.addEventListener('click', handleResetProgram);
         
         // --- Inisialisasi Arena Select ---
@@ -1847,8 +1884,11 @@
         
         <div class="flex justify-between items-center mb-4">
              <h1 class="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">SIJIBOX Arena</h1>
-             <!-- PERUBAHAN: Ganti tombol 'Keluar Room' menjadi 'Logout' -->
-             <button id="btn-leave-room" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-all">Logout</button>
+             <!-- PERUBAHAN: Tambah tombol "Kembali ke Lobi" dan ganti ID/Warna "Logout" -->
+             <div>
+                <button id="btn-back-to-lobby" class="px-4 py-2 bg-gray-500 text-white text-sm font-semibold rounded-lg hover:bg-gray-600 transition-all mr-2">Kembali ke Lobi</button>
+                <button id="btn-logout" class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-all">Logout</button>
+             </div>
         </div>
         
         <!-- BARU: Tampilan ID Room -->
